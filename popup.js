@@ -1,21 +1,65 @@
-let money = 0;
+const container = document.getElementById("ladder-container");
+const climbBtn = document.getElementById("climbBtn");
 
-const moneyDisplay = document.getElementById("money");
-const button = document.getElementById("clickBtn");
+const SEGMENT_HEIGHT = 40;
+const SCREEN_HEIGHT = 350;
+const TOTAL_VARIANTS = 3;
 
-// 1️⃣ Load saved money when popup opens
-chrome.storage.local.get(["money"], (result) => {
-    if (result.money !== undefined) {
-        money = result.money;
-        moneyDisplay.textContent = money;
+let segments = [];
+let offset = 0;
+
+// 🔹 Create ladder segment
+function createSegment() {
+  const img = document.createElement("img");
+
+  const index = Math.floor(Math.random() * TOTAL_VARIANTS) + 1;
+  img.src = `assets/ladder/ladder_0${index}.png`;
+
+  img.classList.add("ladder-segment");
+
+  return img;
+}
+
+// 🔹 Fill initial screen
+function initializeLadder() {
+  const needed = Math.ceil(SCREEN_HEIGHT / SEGMENT_HEIGHT) + 2;
+
+  for (let i = 0; i < needed; i++) {
+    const segment = createSegment();
+    segment.style.position = "absolute";
+    segment.style.top = `${-i * SEGMENT_HEIGHT}px`;
+    container.appendChild(segment);
+    segments.push(segment);
+  }
+}
+
+function climb() {
+  offset += SEGMENT_HEIGHT;
+
+  segments.forEach(seg => {
+    const currentTop = parseInt(seg.style.top);
+    seg.style.top = `${currentTop + SEGMENT_HEIGHT}px`;
+  });
+
+  // Remove off-screen segments
+  segments = segments.filter(seg => {
+    if (parseInt(seg.style.top) > SCREEN_HEIGHT) {
+      seg.remove();
+      return false;
     }
-});
+    return true;
+  });
 
-// 2️⃣ When button clicked, update + save
-button.addEventListener("click", () => {
-    money++;
-    moneyDisplay.textContent = money;
+  // Add new segment at top
+  const topMost = Math.min(...segments.map(seg => parseInt(seg.style.top)));
+  const newSeg = createSegment();
+  newSeg.style.position = "absolute";
+  newSeg.style.top = `${topMost - SEGMENT_HEIGHT}px`;
 
-    // Save to Chrome storage
-    chrome.storage.local.set({ money: money });
-});
+  container.appendChild(newSeg);
+  segments.push(newSeg);
+}
+
+climbBtn.addEventListener("click", climb);
+
+initializeLadder();
